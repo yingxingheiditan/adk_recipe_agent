@@ -211,6 +211,22 @@ gcloud run deploy main-chatbot-agent \
 
 ---
 
+## Result Images
+
+### Listing Recipes in Catalogue (Main Agent)
+
+<img width="1164" height="1047" alt="image" src="https://github.com/user-attachments/assets/f58afcd9-b28f-4d8f-aa2e-5230c637da9f" />
+
+### Recipe Guide Section
+
+<img width="658" height="1057" alt="image" src="https://github.com/user-attachments/assets/dfcdf85b-35f1-4abf-b429-1409a7de28e6" />
+
+### Grocery Section
+
+<img width="658" height="748" alt="image" src="https://github.com/user-attachments/assets/431b19ca-f29c-456a-8f65-c49f547de72b" />
+
+---
+
 ## License
 
 This project is licensed under the Apache 2.0 License.
