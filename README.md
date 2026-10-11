@@ -215,7 +215,7 @@ gcloud run deploy main-chatbot-agent \
 
 ### Listing Recipes in Catalogue (Main Agent)
 
-<img width="1164" height="1047" alt="image" src="https://github.com/user-attachments/assets/f58afcd9-b28f-4d8f-aa2e-5230c637da9f" />
+<img width="633" height="842" alt="image" src="https://github.com/user-attachments/assets/85b7d0c5-915e-4f49-bafc-0b291994b5c0" />
 
 ### Recipe Guide Section
 
