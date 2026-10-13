@@ -70,6 +70,8 @@ git_recipe_agent/
 ├── .env.example                     # Global environment variables template
 ├── .gitignore                       # Git ignore rules (secrets, venvs, DBs)
 ├── README.md                        # Documentation
+├── deploy.sh                        # Automated Cloud Build & Cloud Run deployment script
+├── eval_pipeline.py                 # HTTP evaluation: payloads, tool fidelity, load
 ├── grocery_db_service/              # Standalone Grocery Database API
 │   ├── .env.example
 │   ├── Dockerfile
@@ -208,6 +210,54 @@ gcloud run deploy main-chatbot-agent \
     --set-env-vars RECIPE_AGENT_URL="https://recipe-grocery-agent-<HASH>.run.app",GOOGLE_CLOUD_PROJECT="your-project-id" \
     --allow-unauthenticated
 ```
+
+---
+
+## Automated Deployment (`deploy.sh`)
+
+`deploy.sh` builds each service's container image with **Cloud Build**, stores it in **Artifact Registry** (the repository is created if missing, and images are tagged with the git commit SHA), and deploys it to **Cloud Run** in dependency order: `grocery_db_service` → `recipe_agent` → `main_chatbot`. Each service's URL is passed to the next as an environment variable, and every deploy is followed by a `/health` check.
+
+```bash
+# Configure via environment variables or a .env file in the repo root
+export PROJECT_ID=your-gcp-project-id
+export REGION=us-central1          # optional (default: us-central1)
+export ALLOW_UNAUTH=true           # optional; false = IAM-only (private) services
+
+./deploy.sh            # deploy all three services
+./deploy.sh recipe     # redeploy one service: grocery | recipe | chatbot
+```
+
+At the end the script prints the service URLs and the exact `eval_pipeline.py` command to evaluate the deployment.
+
+---
+
+## Evaluation & Test Pipeline (`eval_pipeline.py`)
+
+`eval_pipeline.py` tests the **running** services over HTTP, either locally (uvicorn) or on Cloud Run. It uses only the Python standard library and exits with code 1 if any check fails, so it can run in CI.
+
+| Suite | What it checks |
+| :--- | :--- |
+| **API payload integrity** | `/health` on all services; A2A agent cards; `/products/match` response schema, and that the total equals the sum of unique product prices; `/products?q=` filtering; `422` on bad payloads; A2A JSON-RPC `message/send` envelope with A2UI v0.9 parts |
+| **Tool-execution fidelity** | 7 golden prompts sent to the agents (`/api/chat`). The A2UI output is inspected to confirm the correct tool ran with the correct arguments: catalog vs grocery surface, recipe name, `/servings` value, grocery items, category filter, button-click events, and `main_chatbot` → `recipe_agent` A2A delegation |
+| **System responsiveness** | Simulated concurrent traffic on `POST /products/match`. Reports RPS, p50/p95/max latency and error rate, and fails on p95 or error-rate thresholds |
+
+```bash
+# Against locally running services (defaults: localhost:8001 / 8002 / 8000)
+python3 eval_pipeline.py
+
+# Against Cloud Run
+python3 eval_pipeline.py --grocery-url=https://... --recipe-url=https://... --chatbot-url=https://...
+
+# Private (IAM-only) services
+ID_TOKEN=$(gcloud auth print-identity-token) python3 eval_pipeline.py --grocery-url=https://... ...
+
+# Useful options
+python3 eval_pipeline.py --skip-agents                 # no LLM calls (grocery API + load test only)
+python3 eval_pipeline.py --requests=500 --concurrency=25 --p95-ms=800
+python3 eval_pipeline.py --json-out=results.json       # machine-readable results
+```
+
+> Golden cases call Gemini through the agents, so they cost a little and can vary between runs. Each case is retried once by default (`--retries`).
 
 ---
 

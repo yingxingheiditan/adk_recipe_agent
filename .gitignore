@@ -41,6 +41,9 @@ venv.bak/
 *.db
 *.sqlite3
 
+# Evaluation results
+results.json
+
 # OS & Editor files
 .DS_Store
 Thumbs.db
